@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Basic three.js</title>
+    <script src="lib/three.js"></script>
+    <script src="lib/OrbitControls.js"></script>
+    <script src="lib/GLTFLoader.js"></script>
+</head>
+<body>
+<script>
+    //Global variables
+    let renderer, scene, camera;
+
+    // To keep track of the animation rate
+    const clock = new THREE.Clock();
+
+    // Canvas size
+    let width = window.innerWidth - 16; //-2*8 for default margins
+    let height = window.innerHeight - 16;
+    let orbitControls;
+
+    function init() {
+        // Creating the scene
+        scene = new THREE.Scene();
+
+        // The renderer
+        renderer = new THREE.WebGLRenderer();
+        renderer.setClearColor(0x000000, 1.0);
+        renderer.setSize(width, height);
+        renderer.shadowMap.enabled = true;
+
+        //Add also ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff);
+        scene.add(ambientLight);
+
+        // The camera
+        camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        camera.position.x = -95;
+        camera.position.y = 40;
+        camera.position.z = 95;
+        camera.lookAt(scene.position);
+
+        // This function will fill objects to  the scene
+        // fillObjectsToScene();
+        loadModels();
+
+        //Control the camera and render it to the dom
+        orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        //Add the renderer element to the document.
+        document.body.appendChild(renderer.domElement);
+
+        //Render for the first time.
+        render(); // This function renders the scene using the camera
+    }
+
+    function render() {
+        //Update animations
+        const delta = clock.getDelta();
+        for ( const mixer of mixers ) {
+            mixer.update( delta );
+        }
+        orbitControls.update();
+        renderer.render(scene, camera);
+        //Render using requestAnimationFrame
+        requestAnimationFrame(render);
+    }
+    const mixers = [];
+    function loadModels(){
+        const loader = new THREE.GLTFLoader();
+        const onload = (gltf, position) =>{
+            const model = gltf.scene.children[0];
+            model.position.copy(position);
+
+            const animation = gltf.animations[0];
+            const mixer = new THREE.AnimationMixer(model);
+            mixers.push(mixer)
+            const action = mixer.clipAction(animation);
+            action.play();
+            scene.add(model);
+        }
+        const onProgress = ()=>{};
+        const onError = (errorMessage)=>{console.log(errorMessage)}
+        //Load the model
+        const parrotPosition = new THREE.Vector3( 0, 0, 0);
+        loader.load('models/Parrot.glb', gltf=>onload(gltf, parrotPosition), onProgress,onError);
+    }
+
+    //Start
+    window.onload = init;
+
+</script>
+</body>
+</html>
